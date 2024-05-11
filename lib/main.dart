@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'init_parse.dart';
 import 'todo_model.dart';
 import 'todo_controller.dart';
+import 'login_screen.dart';
+import 'registration_screen.dart';
+import 'package:parse_server_sdk_flutter/parse_server_sdk_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +20,32 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: ToDoListScreen(),
+      home: AuthenticationWrapper(),
+      routes: {
+        '/login': (context) => LoginScreen(),
+        '/register': (context) => RegistrationScreen(),
+        '/todoList': (context) => ToDoListScreen(),
+      },
+    );
+  }
+}
+
+class AuthenticationWrapper extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<ParseUser?>(
+      future: ParseUser.currentUser().then((user) => user as ParseUser?),
+      builder: (BuildContext context, AsyncSnapshot<ParseUser?> snapshot) {
+        if (snapshot.connectionState == ConnectionState.done) {
+          if (snapshot.data != null) {
+            return ToDoListScreen();
+          }
+          return LoginScreen();
+        }
+        return Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        );
+      },
     );
   }
 }
@@ -127,11 +155,24 @@ class _ToDoListScreenState extends State<ToDoListScreen> {
     }
   }
 
+  void _logout() async {
+    ParseUser user = await ParseUser.currentUser() as ParseUser;
+    await user.logout();
+    Navigator.pushReplacementNamed(context, '/login');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("QuickTest"),
+        title: Text("QuickTask"),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.exit_to_app),
+            onPressed: _logout,
+            tooltip: 'Logout',
+          )
+        ],
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator())
